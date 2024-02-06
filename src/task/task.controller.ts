@@ -20,11 +20,7 @@ export class TaskController {
     )
     queryParams: GetTasksQueryParamsDto,
   ): Promise<TasksResponse> {
-    const tasks = await this.taskService.find({
-      sort: {
-        percentSpent: queryParams.percentSpent,
-      }
-    });
+    const tasks = await this.taskService.find(queryParams);
 
     return new TasksResponse(tasks);
   }
