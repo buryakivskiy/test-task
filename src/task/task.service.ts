@@ -5,6 +5,7 @@ import { ITask } from "./interfaces/task.interface";
 import { IFindTasksOptionsDAL } from "./interfaces/find-options-dal.interface";
 import { SortingOrders } from "src/common/enums/sorting-orders.enum";
 import { IFindTasksOptionsBLL } from "./interfaces/find-options-bll.interface";
+import { roundHours } from "src/common/utils/hours-round";
 
 @Injectable()
 export class TaskService {
@@ -61,7 +62,7 @@ export class TaskService {
   public preparePercentageForTasks(tasks: TaskEntity[]): ITask[] {
     return tasks.map( (task) => {
       const totalCost = task.jobs.reduce((total, job) => {
-        const hoursWorked = (job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60);
+        const hoursWorked = roundHours((job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60));
         const costOfJob = hoursWorked * job.user.rate;
 
         return total + costOfJob;
