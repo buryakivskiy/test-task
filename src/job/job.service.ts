@@ -3,6 +3,7 @@ import { JobRepository } from "./job.repository";
 import { ICreateJobBLL } from "./interfaces/create-job-bll.interface";
 import { UserService } from "src/user/user.service";
 import { TaskService } from "src/task/task.service";
+import { roundHours } from "src/common/utils/hours-round";
 
 @Injectable()
 export class JobService {
@@ -22,12 +23,12 @@ export class JobService {
     const jobs = await this.jobRepository.findManyByTaskId(task.id);
 
     const currentCost = jobs.reduce((total, job) => {
-      const hoursWorked = (job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60);
+      const hoursWorked = roundHours((job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60));
       const costOfJob = hoursWorked * job.user.rate;
 
       return total + costOfJob;
     }, 0);
-    const hoursWorked = (payload.endTime.getTime() - payload.startTime.getTime()) / (1000 * 60 * 60);
+    const hoursWorked = roundHours((payload.endTime.getTime() - payload.startTime.getTime()) / (1000 * 60 * 60));
     const newCost = currentCost + hoursWorked * user.rate;
 
     if (newCost > task.cost) {

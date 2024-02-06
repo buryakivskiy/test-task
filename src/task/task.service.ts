@@ -2,8 +2,10 @@ import { Injectable } from "@nestjs/common";
 import { TaskRepository } from "./task.repository";
 import { TaskEntity } from "./entities/task.entity";
 import { ITask } from "./interfaces/task.interface";
-import { IFindTasksOptions } from "./interfaces/find-options.interface";
+import { IFindTasksOptionsDAL } from "./interfaces/find-options-dal.interface";
 import { SortingOrders } from "src/common/enums/sorting-orders.enum";
+import { IFindTasksOptionsBLL } from "./interfaces/find-options-bll.interface";
+import { roundHours } from "src/common/utils/hours-round";
 
 @Injectable()
 export class TaskService {
@@ -15,10 +17,22 @@ export class TaskService {
     return this.taskRepository.findById(id);
   }
 
-  public async find(options: IFindTasksOptions): Promise<ITask[]> {
+  public async find(payload: IFindTasksOptionsBLL): Promise<ITask[]> {
+    const options: IFindTasksOptionsDAL = {
+      sort: {
+        percentSpent: payload.percentSpent,
+      },
+      filter: {
+        percentSpent: {
+          from: payload.percentSpentFrom,
+          to: payload.percentSpentTo,
+        }
+      }
+    };
+
     const tasks = await this.taskRepository.findWithRelations();
 
-    const preparedTasks = this.preparePercentageForTasks(tasks);
+    let preparedTasks = this.preparePercentageForTasks(tasks);
 
     if (options.sort?.percentSpent) {
       if (options.sort?.percentSpent == SortingOrders.Ascending) {
@@ -28,13 +42,27 @@ export class TaskService {
       } 
     }
 
+    if (options.filter?.percentSpent) {
+      if (options.filter.percentSpent.from) {
+        preparedTasks = preparedTasks.filter((task) => {
+          return task.percentSpent >= options.filter.percentSpent.from;
+        });
+      }
+
+      if (options.filter.percentSpent.to) {
+        preparedTasks = preparedTasks.filter((task) => {
+          return task.percentSpent <= options.filter.percentSpent.to;
+        });
+      }
+    }
+
     return preparedTasks;
   }
 
   public preparePercentageForTasks(tasks: TaskEntity[]): ITask[] {
     return tasks.map( (task) => {
       const totalCost = task.jobs.reduce((total, job) => {
-        const hoursWorked = (job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60);
+        const hoursWorked = roundHours((job.endTime.getTime() - job.startTime.getTime()) / (1000 * 60 * 60));
         const costOfJob = hoursWorked * job.user.rate;
 
         return total + costOfJob;
